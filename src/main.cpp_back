@@ -1,0 +1,265 @@
+#include <Wire.h>
+#include <Adafruit_ADS1X15.h>
+#include <SPI.h>
+
+Adafruit_ADS1115 ads;
+
+// 定义AD5328的SYNC和LDAC引脚
+const int SYNC_PIN = 15;  // ESP32的片选引脚
+const int LDAC_PIN = 2;   // ESP32的LDAC引脚
+
+const float OffsetCalibration[] = {0.050, 0.035, 0.070, -0.020, 0.050, -0.050, 0.030, -0.020};
+
+// 定义起始电压、结束电压、步长和持续时间数组
+float START_VOLTAGE[] = {-1, 0, 0, -6, 0, 0, 6, 0};
+float END_VOLTAGE[] =   {1, 2, 0, -6, 0, 0, 6, 0};
+float VsdSTEP = 0.1;   // IV 模式的步长
+float VgSTEP = 0.5;    // Transfer 模式的步长
+int sign = -1;
+unsigned long DURATION = 500;
+float Rf1 = 12000;
+
+const float nA = 1000000000;
+
+enum Mode { Idle, IV, Transfer, Output };  // 增加Idle模式
+Mode currentMode = Idle;                   // 初始化当前模式为Idle
+
+float targetVoltage[8] ={0, 0, 0, -6, 0, 0, 6, 0};
+bool ascending = true;
+int count = 0;
+
+void setMode(String command);
+void GetCurrent(float targetVoltage, float &voltage, float &current);
+void updateTargetVoltages();
+void updateIVVoltages();
+void updateTransferVoltages();
+void updateOutputVoltages();
+void updateIdleVoltages();
+uint16_t mapVoltageToDAC(float voltage, int channel);
+float calculateVoltage(int16_t adcValue);
+void setGainControlMode();
+void writeDAC(int channel, uint16_t value);
+void updateDACValues();
+
+void setup() {
+  Serial.begin(9600);
+  ads.begin();
+
+  pinMode(SYNC_PIN, OUTPUT);
+  digitalWrite(SYNC_PIN, HIGH);
+  pinMode(LDAC_PIN, OUTPUT);
+  digitalWrite(LDAC_PIN, HIGH);  
+
+  SPI.begin();
+  SPI.setClockDivider(SPI_CLOCK_DIV2);
+  SPI.setDataMode(SPI_MODE2);
+  SPI.setBitOrder(MSBFIRST);
+
+  digitalWrite(LDAC_PIN, LOW);
+  delayMicroseconds(10);
+  digitalWrite(LDAC_PIN, HIGH);
+
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();  // 去除可能的空格或换行符
+    setMode(command);  // 设置模式
+  }
+
+  delay(DURATION);
+
+  float voltage, current;
+  setGainControlMode();
+  updateTargetVoltages();
+  updateDACValues();
+  GetCurrent(targetVoltage[0], voltage, current);
+
+  if(currentMode == IV || currentMode == Idle){
+  Serial.print(targetVoltage[0], 3);
+  }
+  if(currentMode == Transfer){
+  Serial.print(targetVoltage[1]*10*sign, 2);
+  }
+  if(currentMode == Output){
+  Serial.print(targetVoltage[1]*10*sign, 1);
+  Serial.print(", ");
+  Serial.print(targetVoltage[0], 3);
+  }
+  Serial.print(", ");
+  Serial.println(current * nA, 3);
+
+  
+ if (currentMode == IV && count == 2) {
+    currentMode = Idle;
+  }
+   if (currentMode == Transfer && count == 2) {
+    currentMode = Idle;
+  }
+   if (currentMode == Output && count == END_VOLTAGE[1]*2/VgSTEP *2 + 1) {
+    currentMode = Idle;
+  }
+}
+
+void setMode(String command) {
+    for (int i = 0; i < 8; i++) {
+      targetVoltage[i] = START_VOLTAGE[i];
+  }
+  count = 0;
+  if (command == "IV") {
+    currentMode = IV;
+  } else if (command == "Transfer") {
+    currentMode = Transfer;
+  } else if (command == "Output") {
+    currentMode = Output;
+  } else {
+    Serial.println("Unknown command");
+  }
+}
+
+void GetCurrent(float targetVoltage, float &voltage, float &current) {
+  int16_t adcValue = ads.readADC_SingleEnded(0);
+  voltage = calculateVoltage(adcValue);
+  if (targetVoltage <= 0) {
+    voltage += 0.007;
+    current = -voltage / Rf1;
+  } else {
+    current = voltage / Rf1;
+  }
+}
+
+void updateTargetVoltages() {
+  switch (currentMode) {
+    case IV:
+      updateIVVoltages();
+      break;
+    case Transfer:
+      updateTransferVoltages();
+      break;
+    case Output:
+      updateOutputVoltages();
+      break;
+    case Idle:
+      updateIdleVoltages();
+      break;
+  }
+}
+
+// 各模式的电压更新逻辑
+void updateIVVoltages() {
+  if (ascending) {
+    targetVoltage[0] += VsdSTEP;
+    if (targetVoltage[0] >= END_VOLTAGE[0] - VsdSTEP / 2) {
+      ascending = false;
+      count++;
+    }
+  } else {
+    targetVoltage[0] -= VsdSTEP;
+    if (targetVoltage[0] <= START_VOLTAGE[0] + VsdSTEP / 2) {
+      ascending = true;
+      count++;
+    }
+  }
+}
+void updateTransferVoltages(){
+  if (ascending) {
+    targetVoltage[1] += VgSTEP;
+    if (targetVoltage[1] >= END_VOLTAGE[1] - VgSTEP / 2) {
+      ascending = false;
+    }
+  } else {
+    targetVoltage[1] -= VgSTEP;
+    if (targetVoltage[1] <= START_VOLTAGE[1] + VgSTEP / 2) {
+      ascending = true;
+    }
+  }
+  if (abs(targetVoltage[1])<0.05){
+    count++;
+    sign = -sign;
+  }
+}
+void updateOutputVoltages(){
+    static int count1 = 0;
+    static int count2 = 0;
+    if ((count1 == (END_VOLTAGE[0] - START_VOLTAGE[0]) / VsdSTEP + 1) && (count2 == (END_VOLTAGE[1] - START_VOLTAGE[1]) / VgSTEP + 1)) {
+        count1 = 0;
+        count2 = 0;
+    }
+    for ( ; count2 < (END_VOLTAGE[1] - START_VOLTAGE[1]) / VgSTEP + 1; count2++) {
+        for ( ; count1 < (END_VOLTAGE[0] - START_VOLTAGE[0]) / VsdSTEP + 1; count1++) {
+            targetVoltage[0] = START_VOLTAGE[0] + count1 * VsdSTEP;
+            targetVoltage[1] = START_VOLTAGE[1] + count2 * VgSTEP;
+            if (targetVoltage[1] < 0) {
+                sign = -1;
+                targetVoltage[1] = -targetVoltage[1];
+            } else {
+                sign = 1;
+            }
+        }
+    }
+
+
+//   if(targetVoltage[1] <= END_VOLTAGE[1]+ VgSTEP/2){
+//     updateIVVoltages();
+//     if (abs(targetVoltage[1])<0.05){
+//     sign = -sign;
+//   }
+//     targetVoltage[1] += VgSTEP;
+//   }
+}
+
+void updateIdleVoltages() {
+  for (int channel = 0; channel < 1; channel++) {
+    targetVoltage[channel] = 0;
+  }
+}
+
+
+// 映射到0到4095的范围，-10V到10V，并应用通道偏移校准。不改动
+uint16_t mapVoltageToDAC(float voltage, int channel) {
+  float calibratedVoltage;
+  calibratedVoltage = voltage + OffsetCalibration[channel];
+  uint16_t dacValue = (uint16_t)(((calibratedVoltage + 10.0) / 20.0) * 4095);
+  return dacValue;
+} 
+
+//计算电压，不改动
+float calculateVoltage(int16_t adcValue) {
+  // 最大量程6.144V，187.5uV/bit
+  float voltage = adcValue * 0.1875 / 1000.0 ;
+  return voltage;
+}
+
+//设置增益，不改动
+void setGainControlMode() {
+  // 设置增益控制模式，根据您的描述是最高位为1，次两位为00，5-4为11，3-0为0000
+  uint16_t gainControlMode = (1 << 15) | (0 << 14) | (3 << 4) | 0;
+
+  // 开始传输
+  digitalWrite(SYNC_PIN, LOW);
+  SPI.transfer16(gainControlMode);
+  digitalWrite(SYNC_PIN, HIGH);
+}
+
+//写入DAC，不改动
+void writeDAC(int channel, uint16_t value) {
+  // 根据DAC数值确定命令字节
+  uint16_t command;
+  command = (0 << 15) | (channel << 12) | value;
+
+  // 开始传输
+  digitalWrite(SYNC_PIN, LOW);
+  SPI.transfer16(command);
+  digitalWrite(SYNC_PIN, HIGH);
+}
+void updateDACValues() {
+  for (int channel = 0; channel < 8; channel++) {
+    uint16_t dacValue = mapVoltageToDAC(targetVoltage[channel], channel);
+    writeDAC(channel, dacValue);
+  }
+  // 拉低LDAC引脚，更新所有通道的DAC输出
+  digitalWrite(LDAC_PIN, LOW);
+  delayMicroseconds(10);  // 确保LDAC引脚低电平保持时间足够
+  digitalWrite(LDAC_PIN, HIGH);
+}

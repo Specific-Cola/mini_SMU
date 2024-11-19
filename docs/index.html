@@ -1,0 +1,75 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>ESP32 Serial Monitor</title>
+    <style>
+        #output {
+            width: 100%;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>ESP32 Serial Monitor</h1>
+    <textarea id="output" readonly></textarea><br>
+    <input type="text" id="input" /><br>
+    <button onclick="sendMessage()">Send</button>
+    <script>
+        // 每5秒刷新一次页面
+        // setInterval(function() {
+        // location.reload();
+        // }, 500); // 5000毫秒 = 5秒    
+        var connection = new WebSocket('ws://192.168.1.100:81');
+        let messages = [];
+
+        connection.onopen = function() {
+            console.log('Connected to ESP32');
+        };
+
+        connection.onerror = function(error) {
+            console.log('WebSocket Error:', error);
+        };
+
+        connection.onmessage = function(event) {
+            console.log('Received data from ESP32:', event.data);
+            messages.push(event.data); // 将接收到的消息添加到数组中
+            updateOutput(); // 更新输出区域
+        };
+        
+        function sendMessage() {
+            var input = document.getElementById("input").value;
+            if (input.trim() !== "") {
+                connection.send(input); // 发送消息到 ESP32
+                messages.push(input); // 将输入的消息添加到数组中
+                document.getElementById("input").value = "";
+                updateOutput(); // 更新输出区域
+            }
+        }
+        // function sendMessage() {
+        //     var input = document.getElementById("input").value;
+        //     if (input.trim() !== "") {
+        //         messages.push(input); // 将输入的消息添加到数组中
+        //         document.getElementById("input").value = "";
+        //         fetch("/send?msg=" + encodeURIComponent(input));
+        //         updateOutput(); // 更新输出区域
+        //     }
+        // }
+        
+        function updateOutput() {
+            var output = document.getElementById("output");
+            output.value = messages.join(""); // 将消息数组转化为字符串显示
+            output.scrollTop = output.scrollHeight; // 滚动到最新消息
+        }
+
+        // document.addEventListener('DOMContentLoaded', (event) => {
+        //     // 页面加载时获取 ESP32 的变量
+        //     fetch('/receive')
+        //         .then(response => response.text())
+        //         .then(data => {
+        //             messages.push(data); // 将获取到的变量添加到消息列表
+        //             updateOutput(); // 更新输出区域
+        //         });
+        // });
+    </script>
+</body>
+</html>
