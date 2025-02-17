@@ -44,7 +44,6 @@ typedef struct {
 
     //测量数据上传
     struct {
-        uint8_t cur_type;
         double Vds;
         double Vg;
         double current;

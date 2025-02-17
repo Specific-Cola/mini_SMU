@@ -207,7 +207,7 @@ void uploadMeasureData(double Vds, double Vg, double current)
     String jsonMsg;
     StaticJsonDocument<200> doc;
     doc["type"] = "data";
-    doc["cur_type"] = measurement_params.measure_data.cur_type;
+    doc["cur_type"] = measurement_params.currentType;
     doc["Vds"] = measurement_params.measure_data.Vds;
     doc["Vg"] = measurement_params.measure_data.Vg;
     doc["current"] = measurement_params.measure_data.current;

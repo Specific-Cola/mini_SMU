@@ -14,8 +14,8 @@ const int RELAY2_PIN = 33; // 切换反馈电阻引脚
 const double OffsetCalibration[] = {0.055, 0.055, 0.070, -0.020, 0.050, -0.050, 0.030, -0.060};
 
 // 定义起始电压、结束电压、步长和持续时间数组
-double START_VOLTAGE[] = {0, 0, 0, -6, 0, 0, 0, 6};
-double END_VOLTAGE[] = {0, 0, 0, -6, 0, 0, 0, 6};
+double START_VOLTAGE[] = {0, 0, 0, -6, 0, 0, 6, 0};
+double END_VOLTAGE[] = {0, 0, 0, -6, 0, 0, 6, 0};
 double VsdSTEP = 0.0; // IV 模式的步长
 double VgSTEP = 0.0;  // Transfer 模式的步长
 int sign = -1;
@@ -39,7 +39,7 @@ enum Mode
 };                       // 增加Idle模式
 Mode currentMode = Idle; // 初始化当前模式为Idle
 
-double targetVoltage[8] = {0, 0, 0, -6, 0, 0, 0, 6};
+double targetVoltage[8] = {0, 0, 0, -6, 0, 0, 6, 0};
 int count = 0;
 
 void setMode(String command);
