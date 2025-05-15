@@ -11,7 +11,7 @@ const int LDAC_PIN = 4;
 const int RELAY1_PIN = 32; // 切换栅压正负引脚
 const int RELAY2_PIN = 33; // 切换反馈电阻引脚
 
-const double OffsetCalibration[] = {0.055, 0.055, 0.070, -0.020, 0.050, -0.050, 0.030, -0.060};
+const double OffsetCalibration[] = {0.055, 0.050, 0.070, -0.020, 0.050, -0.050, 0.030, -0.060};
 
 // 定义起始电压、结束电压、步长和持续时间数组
 double START_VOLTAGE[] = {0, 0, 0, -6, 0, 0, 6, 0};
@@ -19,10 +19,10 @@ double END_VOLTAGE[] = {0, 0, 0, -6, 0, 0, 6, 0};
 double VsdSTEP = 0.0; // IV 模式的步长
 double VgSTEP = 0.0;  // Transfer 模式的步长
 int sign = -1;
-double DURATION = 1000;
-double RL = 1000.0;
-double Rf1 = 47000.0;
-double Rf2 = 4700000.0;
+double DURATION = 2000;
+double RL = 0.0;
+double Rf1 = 4700.0;
+double Rf2 = 470000.0;
 double Rf = Rf1;
 double Sampletime = 5000;
 const double nA = 1000000000.0;
@@ -39,8 +39,9 @@ enum Mode
 };                       // 增加Idle模式
 Mode currentMode = Idle; // 初始化当前模式为Idle
 
-double targetVoltage[8] = {0, 0, 0, -6, 0, 0, 6, 0};
+double targetVoltage[8] = {0, 0, 0, -6, 0, 6, 0, 0};
 int count = 0;
+double last_current;
 
 void setMode(String command);
 void GetCurrent(double targetVoltage, double &voltage, double &current, double &Vds);
@@ -112,6 +113,7 @@ void measure_task(void *pvParameters)
 
     if (count == 2)
     {
+      measurement_params.currentType = measurement_params_t::None;
       currentMode = Idle;
     }
     double voltage, current, Vds;
@@ -131,21 +133,26 @@ void measure_task(void *pvParameters)
     updateDACValues();
     targetVoltage[1] = targetVoltage[1] * sign;
     GetCurrent(targetVoltage[0], voltage, current, Vds);
-    if (abs(current * nA) < 900.0)
+    
+    // 滞回比较：切换阈值设为800nA，返回阈值设为900nA
+    static bool isHighGain = false;  // 增加状态记忆
+    
+    if (!isHighGain && (abs(current * nA) < 8000.0)) 
     {
       Rf = Rf2;
       digitalWrite(RELAY2_PIN, HIGH);
-      vTaskDelay(DURATION);
-      GetCurrent(targetVoltage[0], voltage, current, Vds);
+      vTaskDelay(DURATION/2);  // 延长稳定时间
+      isHighGain = true;  // 锁定状态
+      GetCurrent(targetVoltage[0], voltage, current, Vds);  // 重新测量
     }
-    else
+    else if (isHighGain && (abs(current * nA) > 9000.0)) 
     {
       Rf = Rf1;
       digitalWrite(RELAY2_PIN, LOW);
-      vTaskDelay(DURATION);
-      GetCurrent(targetVoltage[0], voltage, current, Vds);
+      vTaskDelay(DURATION/2);  // 延长稳定时间
+      isHighGain = false;  // 解锁状态
+      GetCurrent(targetVoltage[0], voltage, current, Vds);  // 重新测量
     }
-
     if (currentMode == IV)
     {
       Serial.print(targetVoltage[0], 3);
@@ -179,6 +186,8 @@ void measure_task(void *pvParameters)
     Serial.println(current * nA, 3);
 
     web_update(targetVoltage[0], targetVoltage[1] * 10, current * nA);
+
+    vTaskDelay(DURATION/2);
   }
 }
 
@@ -201,7 +210,7 @@ void setMode(String command)
     readAndAssignOutputParameters();
     currentMode = Output;
   }
-  else if (command == "It")
+  else if (command == "IT")
   {
     readAndAssignItParameters();
     currentMode = It;
@@ -411,7 +420,7 @@ void updateItVoltages()
   internalCount++;
 
   // 检查内部计数器是否达到采样次数
-  if (internalCount >= Sampletime / DURATION)
+  if (internalCount >= Sampletime)
   {
     count = 2; // 达到目标次数时将内部计数器置为 2
     internalCount = 0;
@@ -535,14 +544,13 @@ void readAndAssignItParameters()
 
   // 解析输入的三个参数
   int firstComma = parameters.indexOf(',');
-  int secondComma = parameters.indexOf(',', firstComma + 1);
+  // int secondComma = parameters.indexOf(',', firstComma + 1);
 
-  if (firstComma != -1 && secondComma != -1)
+  if (firstComma != -1 )
   {
     // 提取并赋值到全局变量
     START_VOLTAGE[0] = parameters.substring(0, firstComma).toDouble();
-    DURATION = parameters.substring(firstComma + 1, secondComma).toDouble() * 1000 - 19;
-    Sampletime = parameters.substring(secondComma + 1).toDouble() * 1000;
+    Sampletime = parameters.substring(firstComma + 1).toDouble();
   }
   else
   {
@@ -606,6 +614,7 @@ void updateDACValues()
 
 void web_setMode()
 {
+  count = 0;
   if (measurement_params.currentType == measurement_params_t::IV)
   {
     START_VOLTAGE[0] = measurement_params.iv.startVoltage;

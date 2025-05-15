@@ -4,16 +4,16 @@ import csv
 import time
 
 # 设置串口参数
-ser = serial.Serial('/dev/cu.usbserial-0001', 115200, timeout=1)  # 根据实际情况修改串口号和波特率
+ser = serial.Serial('', 115200, timeout=1)  # 根据实际情况修改串口号和波特率
 ser.reset_input_buffer()
 ser.reset_output_buffer()
 
 # 设置初始化参数
 Vsd_START = -1
 Vsd_END = 1
-Vsd_STEP = 0.1
-Vg_START = -15
-Vg_END = 15
+Vsd_STEP = 0.05
+Vg_START = -5
+Vg_END = 5
 Vg_STEP = 5
 
 # 发送初始化命令和参数，确保有足够延时
@@ -30,7 +30,7 @@ plt.ylabel('Current (nA)')
 plt.title('Output Curve')
 
 # 初始化CSV文件写入
-csv_filename = "Output_1211.csv"
+csv_filename = "Output_MoS2.csv"
 csv_file = open(csv_filename, 'w', newline='')
 csv_writer = csv.writer(csv_file)
 csv_writer.writerow(['Vg (V)', 'Vsd (V)', 'Isd (A)'])

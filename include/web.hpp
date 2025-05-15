@@ -47,6 +47,7 @@ typedef struct {
         double Vds;
         double Vg;
         double current;
+        double last_current;
     } measure_data;
 
     bool msg_coming;

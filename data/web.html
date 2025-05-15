@@ -6,13 +6,20 @@
     <title>Mini-SMU 测量系统</title>
     <style>
         :root {
-            --primary-color: #2196F3;
-            --secondary-color: #03A9F4;
-            --success-color: #4CAF50;
-            --error-color: #f44336;
-            --background-color: #f5f5f5;
-            --card-background: #ffffff;
-            --text-color: #333333;
+            /* 主题色调 */
+            --primary-color: #4a90e2;
+            --secondary-color: #50E3C2;
+            --success-color: #13ce66;
+            --error-color: #ff4949;
+            /* 背景色 */
+            --background-color: #1e1e2f;
+            --card-background: #27293d;
+            /* 文字颜色 */
+            --text-color: #ffffff;
+            --text-secondary: #9a9a9a;
+            /* 渐变色 */
+            --gradient-primary: linear-gradient(135deg, #4a90e2 0%, #50E3C2 100%);
+            --box-shadow: 0 2px 22px 0 rgba(0, 0, 0, 0.2);
         }
 
         * {
@@ -26,15 +33,25 @@
             background-color: var(--background-color);
             color: var(--text-color);
             line-height: 1.6;
-            padding: 20px;
+            padding: 0;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
         }
 
         h1 {
-            text-align: center;
-            color: var(--primary-color);
-            margin: 20px 0;
+            color: white;
+            margin: 0;
+            padding: 10px;
             font-size: 2.2em;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-weight: 700;
+            letter-spacing: 2px;
+            background: white;
+            text-align: center;
+            background-color: var(--card-background);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         h2 {
@@ -45,12 +62,15 @@
 
         .measurement-section {
             background-color: var(--card-background);
-            margin: 20px auto;
+            margin: 0;
+            height: auto;
             padding: 25px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: var(--box-shadow);
+            border: 1px solid rgba(255,255,255,0.1);
             max-width: 800px;
             transition: transform 0.2s ease;
+            height: 100%;
         }
 
         .measurement-section:hover {
@@ -72,16 +92,18 @@
         input[type="number"] {
             width: 150px;
             padding: 8px 12px;
-            border: 2px solid #ddd;
+            border: 1px solid rgba(74, 144, 226, 0.3);
             border-radius: 5px;
             font-size: 14px;
             transition: border-color 0.3s ease;
+            background: rgba(74, 144, 226, 0.1);
+            color: var(--text-color);
         }
 
         input[type="number"]:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 5px rgba(33,150,243,0.3);
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
         }
 
         button {
@@ -105,9 +127,8 @@
         }
 
         #message-log {
-            margin: 20px auto;
-            max-width: 800px;
-            height: 300px;
+            flex: 1;
+            min-height: 400px;
             background-color: var(--card-background);
             border-radius: 10px;
             padding: 15px;
@@ -116,13 +137,14 @@
         }
 
         .log-message {
-            padding: 5px 0;
-            border-bottom: 1px solid #eee;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             font-size: 14px;
+            color: var(--text-color);
         }
 
         .log-time {
-            color: #666;
+            color: var(--text-secondary);
             margin-right: 10px;
         }
 
@@ -144,16 +166,18 @@
 
         /* 添加连接状态指示器 */
         #connection-status {
-            position: fixed;
-            top: 20px;
+            position: absolute;
             right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
             padding: 8px 15px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: bold;
             background-color: var(--error-color);
             color: white;
-            transition: background-color 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 101;
         }
 
         #connection-status.connected {
@@ -176,123 +200,243 @@
             position: relative;
         }
 
-        .collapsible:after {
-            content: '\002B';
-            color: white;
-            font-weight: bold;
-            float: right;
-        }
-
-        .active:after {
-            content: "\2212";
-        }
-
         .content {
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.2s ease-out;
             background-color: var(--card-background);
         }
+
+        /* 添加左右分栏布局样式 */
+        .container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: auto 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .title-container {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            box-shadow: var(--box-shadow);
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .left-panel {
+            grid-row: 2 / -1;
+            grid-column: 1;
+            background: var(--card-background);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .right-panel {
+            grid-column: 2;
+            grid-row: 2 / -1;
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+        }
+
+        /* 测量模式选择按钮样式 */
+        .mode-button {
+            width: 100%;
+            padding: 15px;
+            margin: 5px 0;
+            text-align: left;
+            background: rgba(74, 144, 226, 0.1);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: var(--text-color);
+            border: 1px solid rgba(74, 144, 226, 0.2);
+        }
+
+        .mode-button.active {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+        }
+
+        .mode-button:hover {
+            transform: translateX(5px);
+        }
+
+        /* 测量参数面板样式 */
+        .parameter-panels {
+            grid-row: 1;
+            background: var(--card-background);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .parameter-panel {
+            display: none;
+        }
+
+        .parameter-panel.active {
+            display: block;
+        }
+
+        /* 响应式设计调整 */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr 1fr;
+                height: auto;
+            }
+            .title-container {
+                grid-column: 1;
+                grid-row: 1;
+            }
+            .left-panel {
+                grid-row: 2;
+                grid-column: 1;
+            }
+            .right-panel {
+                grid-row: 3 / -1;
+                grid-column: 1;
+            }
+        }
+
+        #message-log {
+            grid-row: 2;
+            background-color: var(--card-background);
+            border-radius: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
-    <div id="connection-status">未连接</div>
-    <h1>Mini-SMU 测量系统</h1>
-
-    <!-- 消息日志显示区域 -->
-    <div id="message-log">
-        <div class="log-message">系统日志...</div>
-    </div>
-
-    <!-- 停止测量按钮 -->
-    <button class="stop-button" onclick="stopMeasurement()" style="background-color: var(--error-color); margin: 20px auto; display: block; max-width: 800px;">
-        停止测量
-    </button>
-
-    <!-- 数据下载按钮 -->
-    <button class="collapsible">测量数据</button>
-    <div class="content">
-        <div class="measurement-section">
-            <button onclick="downloadData()">下载数据</button>
+    <div class="container">
+        <div class="title-container">
+            <h1>Mini-SMU 测量系统</h1>
+            <div id="connection-status">未连接</div>
         </div>
-    </div>
-
-    <!-- IV测量部分 -->
-    <button class="collapsible">IV测量设置</button>
-    <div class="content">
-        <div class="measurement-section">
-            <h2>IV测量</h2>
-            <div class="parameter-group">
-                <label>起始电压 (V):</label>
-                <input type="number" id="iv-start-voltage" step="0.1">
-            </div>
-            <div class="parameter-group">
-                <label>结束电压 (V):</label>
-                <input type="number" id="iv-end-voltage" step="0.1">
-            </div>
-            <div class="parameter-group">
-                <label>步进值 (V):</label>
-                <input type="number" id="iv-step" step="0.1">
-            </div>
-            <button onclick="startIVMeasurement()">开始IV测量</button>
+        <!-- 左侧面板 - 测量模式选择 -->
+        <div class="left-panel">
+            <h2>测量模式</h2>
+            <button class="mode-button active" data-mode="iv">IV 测量</button>
+            <button class="mode-button" data-mode="output">Output 测量</button>
+            <button class="mode-button" data-mode="transfer">Transfer 测量</button>
+            <button class="mode-button" data-mode="data">测量数据</button>
+            <button class="stop-button" onclick="stopMeasurement()" 
+                    style="background-color: var(--error-color); margin-top: 20px;">
+                停止测量
+            </button>
         </div>
-    </div>
 
-    <!-- Output测量部分 -->
-    <button class="collapsible">Output测量设置</button>
-    <div class="content">
-        <div class="measurement-section">
-            <h2>Output测量</h2>
-            <div class="parameter-group">
-                <label>栅极起始电压 (V):</label>
-                <input type="number" id="output-vg-start" step="0.1">
+        <!-- 右侧面板 - 日志和参数设置 -->
+        <div class="right-panel">
+            <!-- 消息日志显示区域 -->
+            <div id="message-log">
+                <div class="log-message">系统日志...</div>
             </div>
-            <div class="parameter-group">
-                <label>栅极结束电压 (V):</label>
-                <input type="number" id="output-vg-end" step="0.1">
-            </div>
-            <div class="parameter-group">
-                <label>栅极步进值 (V):</label>
-                <input type="number" id="output-vg-step" step="0.1">
-            </div>
-            <div class="parameter-group">
-                <label>源漏起始电压 (V):</label>
-                <input type="number" id="output-vd-start" step="0.1">
-            </div>
-            <div class="parameter-group">
-                <label>源漏结束电压 (V):</label>
-                <input type="number" id="output-vd-end" step="0.1">
-            </div>
-            <div class="parameter-group">
-                <label>源漏步进值 (V):</label>
-                <input type="number" id="output-vd-step" step="0.1">
-            </div>
-            <button onclick="startOutputMeasurement()">开始Output测量</button>
-        </div>
-    </div>
 
-    <!-- Transfer测量部分 -->
-    <button class="collapsible">Transfer测量设置</button>
-    <div class="content">
-        <div class="measurement-section">
-            <h2>Transfer测量</h2>
-            <div class="parameter-group">
-                <label>栅极起始电压 (V):</label>
-                <input type="number" id="transfer-vg-start" step="0.1">
+            <!-- 参数设置区域 -->
+            <div class="parameter-panels">
+                <!-- IV测量参数面板 -->
+                <div class="parameter-panel active" id="iv-panel">
+                    <div class="measurement-section">
+                        <h2>IV测量参数设置</h2>
+                        <div class="parameter-group">
+                            <label>起始电压 (V):</label>
+                            <input type="number" id="iv-start-voltage" step="0.1">
+                        </div>
+                        <div class="parameter-group">
+                            <label>结束电压 (V):</label>
+                            <input type="number" id="iv-end-voltage" step="0.1">
+                        </div>
+                        <div class="parameter-group">
+                            <label>步进值 (V):</label>
+                            <input type="number" id="iv-step" step="0.1">
+                        </div>
+                        <button onclick="startIVMeasurement()">开始IV测量</button>
+                    </div>
+                </div>
+
+                <!-- Output测量参数面板 -->
+                <div class="parameter-panel" id="output-panel">
+                    <div class="measurement-section">
+                        <h2>Output测量参数设置</h2>
+                        <div class="parameter-group">
+                            <label>栅极起始电压 (V):</label>
+                            <input type="number" id="output-vg-start" step="0.1">
+                        </div>
+                        <div class="parameter-group">
+                            <label>栅极结束电压 (V):</label>
+                            <input type="number" id="output-vg-end" step="0.1">
+                        </div>
+                        <div class="parameter-group">
+                            <label>栅极步进值 (V):</label>
+                            <input type="number" id="output-vg-step" step="0.1">
+                        </div>
+                        <div class="parameter-group">
+                            <label>源漏起始电压 (V):</label>
+                            <input type="number" id="output-vd-start" step="0.1">
+                        </div>
+                        <div class="parameter-group">
+                            <label>源漏结束电压 (V):</label>
+                            <input type="number" id="output-vd-end" step="0.1">
+                        </div>
+                        <div class="parameter-group">
+                            <label>源漏步进值 (V):</label>
+                            <input type="number" id="output-vd-step" step="0.1">
+                        </div>
+                        <button onclick="startOutputMeasurement()">开始Output测量</button>
+                    </div>
+                </div>
+
+                <!-- Transfer测量参数面板 -->
+                <div class="parameter-panel" id="transfer-panel">
+                    <div class="measurement-section">
+                        <h2>Transfer测量参数设置</h2>
+                        <div class="parameter-group">
+                            <label>栅极起始电压 (V):</label>
+                            <input type="number" id="transfer-vg-start" step="0.1">
+                        </div>
+                        <div class="parameter-group">
+                            <label>栅极结束电压 (V):</label>
+                            <input type="number" id="transfer-vg-end" step="0.1">
+                        </div>
+                        <div class="parameter-group">
+                            <label>栅极步进值 (V):</label>
+                            <input type="number" id="transfer-vg-step" step="0.1">
+                        </div>
+                        <div class="parameter-group">
+                            <label>源漏电压 (V):</label>
+                            <input type="number" id="transfer-vd" step="0.1">
+                        </div>
+                        <button onclick="startTransferMeasurement()">开始Transfer测量</button>
+                    </div>
+                </div>
+
+                <!-- 数据下载面板 -->
+                <div class="parameter-panel" id="data-panel">
+                    <div class="measurement-section">
+                        <h2>测量数据</h2>
+                        <button onclick="downloadData()">下载数据</button>
+                    </div>
+                </div>
             </div>
-            <div class="parameter-group">
-                <label>栅极结束电压 (V):</label>
-                <input type="number" id="transfer-vg-end" step="0.1">
-            </div>
-            <div class="parameter-group">
-                <label>栅极步进值 (V):</label>
-                <input type="number" id="transfer-vg-step" step="0.1">
-            </div>
-            <div class="parameter-group">
-                <label>源漏电压 (V):</label>
-                <input type="number" id="transfer-vd" step="0.1">
-            </div>
-            <button onclick="startTransferMeasurement()">开始Transfer测量</button>
         </div>
     </div>
 
@@ -349,7 +493,7 @@
                 } else if (data.type === 'data') {
                     // 处理测量数据
                     const measureType = measureTypeMap[data.cur_type] || "未知";
-                    logMessage(`${measureType} - Vds: ${data.Vds.toFixed(3)}V, Vg: ${data.Vg.toFixed(3)}V, Current: ${data.current.toExponential(3)}nA`);
+                    logMessage(`${measureType} - Vds: ${data.Vds.toFixed(3)}V, Vg: ${data.Vg.toFixed(3)}V, Current: ${data.current.toFixed(3)}nA`);
                     
                     // 存储数据
                     measurementData.push({
@@ -462,7 +606,7 @@
 
             // 转换数据为CSV格式
             const csvContent = [
-                "时间戳,测量类型,Vds(V),Vg(V),电流(A)",
+                "时间戳,测量类型,Vds(V),Vg(V),电流(nA)",
                 ...measurementData.map(row => 
                     `${row.timestamp},${row.type},${row.vds},${row.vg},${row.current}`
                 )
@@ -481,6 +625,22 @@
             
             logMessage('数据已下载');
         }
+
+        // 测量模式切换功能
+        document.querySelectorAll('.mode-button').forEach(button => {
+            button.addEventListener('click', function() {
+                // 更新按钮状态
+                document.querySelectorAll('.mode-button').forEach(btn => 
+                    btn.classList.remove('active'));
+                this.classList.add('active');
+
+                // 更新面板显示
+                const mode = this.dataset.mode;
+                document.querySelectorAll('.parameter-panel').forEach(panel => 
+                    panel.classList.remove('active'));
+                document.getElementById(`${mode}-panel`).classList.add('active');
+            });
+        });
 
         // 页面加载完成后建立WebSocket连接
         window.onload = connectWebSocket;

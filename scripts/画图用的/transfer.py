@@ -4,13 +4,13 @@ import csv
 import time
 
 # 设置串口参数
-ser = serial.Serial('COM5', 115200, timeout=1)  # 根据实际情况修改串口号和波特率
+ser = serial.Serial('/dev/cu.usbserial-0001', 115200, timeout=1)  # 根据实际情况修改串口号和波特率
 ser.reset_input_buffer()  # 清空输入缓冲区
 
 # 设置初始化参数
-Vsd = 0.1
-Vg_START = -5
-Vg_END = 5
+Vsd = 1
+Vg_START = -50
+Vg_END = 50
 Vg_STEP = 1
 
 # 向串口发送初始化命令
@@ -34,7 +34,7 @@ plt.ylabel('Current (nA)')
 plt.title('Transfer Curve')
 
 # 初始化CSV文件写入
-csv_filename = "Transfer-1210.csv"
+csv_filename = "Transfer-MOS2.csv"
 csv_file = open(csv_filename, 'w', newline='')
 csv_writer = csv.writer(csv_file)
 csv_writer.writerow(['Vg (V)', 'Current (nA)'])
@@ -84,7 +84,7 @@ try:
 except KeyboardInterrupt:
     print("程序被用户终止")
 finally:
-    # 关闭串口和CSV文件
+    time.sleep(5)
     ser.close()
     csv_file.close()
     plt.ioff()

@@ -13,9 +13,9 @@ void setup() {
 }
 
 void loop() {
-  Serial.println(measurement_params.currentType);
-  web_println("currentType: " + String(measurement_params.currentType));
-  web_println(measurement_params.msg_coming ? "true" : "false");
+  // Serial.println(measurement_params.currentType);
+  // web_println("currentType: " + String(measurement_params.currentType));
+  // web_println(measurement_params.msg_coming ? "true" : "false");
   // uploadMeasureData(0.001, 0.002, -0.003);
   delay(1000);
 }
